@@ -3,7 +3,6 @@ package helpers
 import helpers.SorusDSL._
 
 import org.scalatest._
-import play.api.libs.json.{JsError, JsSuccess}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
