@@ -18,20 +18,20 @@ class SorusTest extends FlatSpec with Matchers with Sorus {
   // Just the fact this function compile allow us to compose various Future
   def composeVariousFuture():Future[Fail\/String] = {
 
-    for{
-      foo <- Future.successful("foo")      ?| "future.error"
-      bar <- Future.successful(Some(foo))  ?| "future.option.error"
-      baz <- Future.successful(Right(bar)) ?| "future.either.error"
-      foz <- Future.successful(baz.right)  ?| "future.disjunction.error"
-      faz <- Some(foz)                     ?| "option.error"
-      far <- Right(faz)                    ?| "either.error"
-      boo <- far.right                     ?| "disjunction.error"
-      boz <- Try { boo }                   ?| "try.error"
-      bor <- (boz == "foo")                ?| "boolean.error"
-    } yield {
-      boz
+    for {
+        foo <- Future.successful("foo")      ?| "future.error"
+        bar <- Future.successful(Some(foo))  ?| "future.option.error"
+        baz <- Future.successful(Right(bar)) ?| "future.either.error"
+        foz <- Future.successful(baz.right)  ?| "future.disjunction.error"
+        faz <- Some(foz)                     ?| "option.error"
+        far <- Right(faz)                    ?| "either.error"
+        boo <- far.right                     ?| "disjunction.error"
+        boz <- Try { boo }                   ?| "try.error"
+        bor <- (boz == "foo")                ?| "boolean.error"
+      } yield {
+        boz
+      }
     }
-  }
 
     "Sorus" should "properly promote Future[A] to Step[A]" in {
       val successfulFuture = Future.successful(42)
