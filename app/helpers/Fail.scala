@@ -15,6 +15,8 @@
  */
 package helpers
 
+import org.apache.commons.lang3.exception.ExceptionUtils
+
 import scalaz._
 
 case class Fail (message: String, cause: Option[\/[Throwable, Fail]] = None) {
@@ -27,7 +29,7 @@ case class Fail (message: String, cause: Option[\/[Throwable, Fail]] = None) {
 
   def messages(): NonEmptyList[String] = cause match {
     case None              => NonEmptyList(message)
-    case Some(-\/(exp))    => message <:: NonEmptyList(s"${exp.getMessage} ${exp.getStackTraceString}")
+    case Some(-\/(exp))    => message <:: NonEmptyList(s"${exp.getMessage} ${getStackTrace(exp)}")
     case Some(\/-(parent)) => message <:: parent.messages
   }
 
@@ -38,5 +40,9 @@ case class Fail (message: String, cause: Option[\/[Throwable, Fail]] = None) {
       case -\/(exp)    => Some(exp)
       case \/-(parent) => parent.getRootException
     }
+  }
+
+  private def getStackTrace(e:Throwable):String = {
+    ExceptionUtils.getStackTrace(e)
   }
 }

@@ -16,12 +16,12 @@ libraryDependencies ++= Seq(
 // sbt and compiler option
 scalacOptions ++= Seq(
     "-deprecation",
-    //"-feature",
+    "-feature",
     "-unchecked",
-    //"-Xfatal-warnings",
+    "-Xfatal-warnings",
     "-Xlint",
     "-Ywarn-dead-code",
-    //"-Ywarn-unused",
-    //"-Ywarn-unused-import",
+    "-Ywarn-unused",
+    "-Ywarn-unused-import",
     "-Ywarn-value-discard" //when non-Unit expression results are unused 
 )
