@@ -36,18 +36,24 @@ object FutureOptionDSL {
   type Step[A] = EitherT[Future, Fail, A]
   type JsErrorContent = Seq[(JsPath, Seq[ValidationError])]
 
-  private[FutureOptionDSL] def fromFuture[A](onFailure: Throwable => Fail)(future: Future[A])(implicit ec: ExecutionContext): Step[A] =
+  private[FutureOptionDSL] def fromFuture[A](onFailure: Throwable => Fail)(future: Future[A])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](
       future.map(_.right).recover {
         case NonFatal(t) => onFailure(t).left
       }
     )
+  }
 
   private[FutureOptionDSL] def fromFOption[A](onNone: => Fail)(fOption: Future[Option[A]])(implicit ec: ExecutionContext): Step[A] =
-    EitherT[Future, Fail, A](fOption.map(_ \/> onNone))
+    EitherT[Future, Fail, A](
+      fOption.map(_ \/> onNone).recover {
+        case NonFatal(t) => onNone.withEx(t).left
+      }
+    )
 
-  private[FutureOptionDSL] def fromFEither[A, B](onLeft: B => Fail)(fEither: Future[Either[B, A]])(implicit ec: ExecutionContext): Step[A] =
+  private[FutureOptionDSL] def fromFEither[A, B](onLeft: B => Fail)(fEither: Future[Either[B, A]])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](fEither.map(_.fold(onLeft andThen \/.left, \/.right)))
+  }
 
   private[FutureOptionDSL] def fromFDisjunction[A, B](onLeft: B => Fail)(fDisjunction: Future[B \/ A])(implicit ec: ExecutionContext): Step[A] =
     EitherT[Future, Fail, A](fDisjunction.map(_.leftMap(onLeft)))
@@ -76,32 +82,15 @@ object FutureOptionDSL {
   trait StepOps[A, B] {
     def orFailWith(failureHandler: B => Fail): Step[A]
     def ?|(failureHandler: B => Fail): Step[A] = orFailWith(failureHandler)
-    //def ?|(failureThunk: => Fail): Step[A] = orFailWith(_ => failureThunk)
     def ?|(failureThunk: => String): Step[A] = orFailWith {
       case err: Throwable => Fail(failureThunk).withEx(err)
-      case b              => Fail(b.toString).info(failureThunk)
+      case fail: Fail     => Fail(failureThunk).withEx(fail)
+      case b              => Fail(b.toString).withEx(failureThunk)
     }
-  }
-
-  case class Fail(message: String, cause: Option[\/[Throwable, Fail]] = None) {
-
-    def info(s: String) = Fail(s, Some(\/-(this)))
-
-    def withEx(ex: Throwable) = this.copy(cause = Some(-\/(ex)))
-
-    def messages(): NonEmptyList[String] = cause match {
-      case None              => NonEmptyList(message)
-      case Some(-\/(exp))    => message <:: message <:: NonEmptyList(exp.getMessage)
-      case Some(\/-(parent)) => message <:: message <:: parent.messages
-    }
-
-    def userMessage(): String = messages.list.mkString("", " <- ", "")
-
-    def getRootException(): Option[Throwable] = cause flatMap {
-      _ match {
-        case -\/(exp)    => Some(exp)
-        case \/-(parent) => parent.getRootException
-      }
+    def ?|(): Step[A] = orFailWith {
+      case err: Throwable => Fail("Unexpected exception").withEx(err)
+      case fail: Fail     => fail
+      case b              => Fail(b.toString)
     }
   }
 
