@@ -31,12 +31,12 @@ import scalaz._
  *  - http://fr.slideshare.net/normation/nrm-scala-iocorrectlymanagingerrorsinscalav13
  *  - https://github.com/Kanaka-io/play-monadic-actions
  */
-object FutureOptionDSL {
+object SorusDSL {
 
   type Step[A] = EitherT[Future, Fail, A]
   type JsErrorContent = Seq[(JsPath, Seq[ValidationError])]
 
-  private[FutureOptionDSL] def fromFuture[A](onFailure: Throwable => Fail)(future: Future[A])(implicit ec: ExecutionContext): Step[A] = {
+  private[SorusDSL] def fromFuture[A](onFailure: Throwable => Fail)(future: Future[A])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](
       future.map(_.right).recover {
         case NonFatal(t) => onFailure(t).left
@@ -44,36 +44,39 @@ object FutureOptionDSL {
     )
   }
 
-  private[FutureOptionDSL] def fromFOption[A](onNone: => Fail)(fOption: Future[Option[A]])(implicit ec: ExecutionContext): Step[A] =
+  private[SorusDSL] def fromFOption[A](onNone: => Fail)(fOption: Future[Option[A]])(implicit ec: ExecutionContext): Step[A] =
     EitherT[Future, Fail, A](
       fOption.map(_ \/> onNone).recover {
         case NonFatal(t) => onNone.withEx(t).left
       }
     )
 
-  private[FutureOptionDSL] def fromFEither[A, B](onLeft: B => Fail)(fEither: Future[Either[B, A]])(implicit ec: ExecutionContext): Step[A] = {
+  private[SorusDSL] def fromFEither[A, B](onLeft: B => Fail)(fEither: Future[Either[B, A]])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](fEither.map(_.fold(onLeft andThen \/.left, \/.right)))
   }
 
-  private[FutureOptionDSL] def fromFDisjunction[A, B](onLeft: B => Fail)(fDisjunction: Future[B \/ A])(implicit ec: ExecutionContext): Step[A] =
+  private[SorusDSL] def fromFDisjunction[A, B](onLeft: B => Fail)(fDisjunction: Future[B \/ A])(implicit ec: ExecutionContext): Step[A] =
     EitherT[Future, Fail, A](fDisjunction.map(_.leftMap(onLeft)))
 
-  private[FutureOptionDSL] def fromOption[A](onNone: => Fail)(option: Option[A]): Step[A] =
+  private[SorusDSL] def fromOption[A](onNone: => Fail)(option: Option[A]): Step[A] =
     EitherT[Future, Fail, A](Future.successful(option \/> onNone))
 
-  private[FutureOptionDSL] def fromEither[A, B](onLeft: B => Fail)(either: Either[B, A])(implicit ec: ExecutionContext): Step[A] =
+  private[SorusDSL] def fromDisjunction[A, B](onLeft: B => Fail)(disjunction: B\/A)(implicit ec: ExecutionContext): Step[A] =
+    EitherT[Future, Fail, A](Future.successful(disjunction.leftMap(onLeft)))
+
+  private[SorusDSL] def fromEither[A, B](onLeft: B => Fail)(either: Either[B, A])(implicit ec: ExecutionContext): Step[A] =
     EitherT[Future, Fail, A](Future.successful(either.fold(onLeft andThen \/.left, \/.right)))
 
-  private[FutureOptionDSL] def fromJsResult[A](onJsError: JsErrorContent => Fail)(jsResult: JsResult[A]): Step[A] =
+  private[SorusDSL] def fromJsResult[A](onJsError: JsErrorContent => Fail)(jsResult: JsResult[A]): Step[A] =
     EitherT[Future, Fail, A](Future.successful(jsResult.fold(onJsError andThen \/.left, \/.right)))
 
-  private[FutureOptionDSL] def fromForm[A](onError: Form[A] => Fail)(form: Form[A]): Step[A] =
+  private[SorusDSL] def fromForm[A](onError: Form[A] => Fail)(form: Form[A]): Step[A] =
     EitherT[Future, Fail, A](Future.successful(form.fold(onError andThen \/.left, \/.right)))
 
-  private[FutureOptionDSL] def fromBoolean(onFalse: => Fail)(boolean: Boolean): Step[Unit] =
+  private[SorusDSL] def fromBoolean(onFalse: => Fail)(boolean: Boolean): Step[Unit] =
     EitherT[Future, Fail, Unit](Future.successful(if (boolean) ().right else onFalse.left))
 
-  private[FutureOptionDSL] def fromTry[A](onFailure: Throwable => Fail)(tryValue: Try[A]): Step[A] =
+  private[SorusDSL] def fromTry[A](onFailure: Throwable => Fail)(tryValue: Try[A]): Step[A] =
     EitherT[Future, Fail, A](Future.successful(tryValue match {
       case Failure(t) => onFailure(t).left
       case Success(v) => v.right
@@ -94,7 +97,7 @@ object FutureOptionDSL {
     }
   }
 
-  trait MonadicExtensions {
+  trait Sorus {
 
     import scala.language.implicitConversions
 
@@ -136,6 +139,10 @@ object FutureOptionDSL {
 
     implicit def optionToStepOps[A](option: Option[A]): StepOps[A, Unit] = new StepOps[A, Unit] {
       override def orFailWith(failureHandler: (Unit) => Fail) = fromOption(failureHandler(()))(option)
+    }
+
+    implicit def disjunctionToStepOps[A, B](disjunction: B\/A): StepOps[A, B] = new StepOps[A, B] {
+      override def orFailWith(failureHandler: (B) => Fail) = fromDisjunction(failureHandler)(disjunction)(executionContext)
     }
 
     implicit def eitherToStepOps[A, B](either: Either[B, A]): StepOps[A, B] = new StepOps[A, B] {
