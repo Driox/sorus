@@ -100,4 +100,16 @@ class SorusTest extends FlatSpec with Matchers with Sorus {
       Await.result(eitherT.run, 10 seconds) shouldBe Fail("error",Some(-\/(ex))).left
     }
 
+    "Sorus" should "pass underlying message to Result" in {
+
+      def underlyingMethod():Future[Fail\/String] = Future.successful(Fail("underlying error").left)
+
+      val result:Future[Fail\/String] = for {
+        x <- underlyingMethod() ?| ()
+      } yield {
+        "success"
+      }
+
+      Await.result(result , 10 seconds) shouldBe Fail("underlying error").left
+    }
 }
