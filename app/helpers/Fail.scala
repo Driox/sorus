@@ -16,20 +16,22 @@
 package helpers
 
 import scalaz._
-  
-case class Fail(message: String, cause: Option[\/[Throwable, Fail]] = None) {
 
-  def info(s: String) = Fail(s, Some(\/-(this)))
+case class Fail (message: String, cause: Option[\/[Throwable, Fail]] = None) {
 
-  def withEx(ex: Throwable) = this.copy(cause = Some(-\/(ex)))
+  def withEx(s: String) = Fail(s, Some(\/-(this)))
+
+  def withEx(ex: Throwable) = Fail(this.message, Some(-\/(ex)))
+
+  def withEx(fail: Fail) = Fail(this.message, Some(\/-(fail)))
 
   def messages(): NonEmptyList[String] = cause match {
     case None              => NonEmptyList(message)
-    case Some(-\/(exp))    => message <:: message <:: NonEmptyList(exp.getMessage)
-    case Some(\/-(parent)) => message <:: message <:: parent.messages
+    case Some(-\/(exp))    => message <:: NonEmptyList(s"${exp.getMessage} ${exp.getStackTraceString}")
+    case Some(\/-(parent)) => message <:: parent.messages
   }
 
-  def userMessage(): String = messages.list.mkString("", " <- ", "")
+  def userMessage(): String = messages.list.mkString(" <- ")
 
   def getRootException(): Option[Throwable] = cause flatMap {
     _ match {
