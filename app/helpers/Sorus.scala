@@ -15,10 +15,6 @@
  */
 package helpers
 
-import play.api.data.Form
-import play.api.data.validation.ValidationError
-import play.api.libs.json.{JsPath, JsResult}
-
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
@@ -34,7 +30,6 @@ import scalaz._
 object SorusDSL {
 
   type Step[A] = EitherT[Future, Fail, A]
-  type JsErrorContent = Seq[(JsPath, Seq[ValidationError])]
 
   private[SorusDSL] def fromFuture[A](onFailure: Throwable => Fail)(future: Future[A])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](
@@ -66,12 +61,6 @@ object SorusDSL {
 
   private[SorusDSL] def fromEither[A, B](onLeft: B => Fail)(either: Either[B, A])(implicit ec: ExecutionContext): Step[A] =
     EitherT[Future, Fail, A](Future.successful(either.fold(onLeft andThen \/.left, \/.right)))
-
-  private[SorusDSL] def fromJsResult[A](onJsError: JsErrorContent => Fail)(jsResult: JsResult[A]): Step[A] =
-    EitherT[Future, Fail, A](Future.successful(jsResult.fold(onJsError andThen \/.left, \/.right)))
-
-  private[SorusDSL] def fromForm[A](onError: Form[A] => Fail)(form: Form[A]): Step[A] =
-    EitherT[Future, Fail, A](Future.successful(form.fold(onError andThen \/.left, \/.right)))
 
   private[SorusDSL] def fromBoolean(onFalse: => Fail)(boolean: Boolean): Step[Unit] =
     EitherT[Future, Fail, Unit](Future.successful(if (boolean) ().right else onFalse.left))
@@ -147,14 +136,6 @@ object SorusDSL {
 
     implicit def eitherToStepOps[A, B](either: Either[B, A]): StepOps[A, B] = new StepOps[A, B] {
       override def orFailWith(failureHandler: (B) => Fail) = fromEither(failureHandler)(either)(executionContext)
-    }
-
-    implicit def jsResultToStepOps[A](jsResult: JsResult[A]): StepOps[A, JsErrorContent] = new StepOps[A, JsErrorContent] {
-      override def orFailWith(failureHandler: (JsErrorContent) => Fail) = fromJsResult(failureHandler)(jsResult)
-    }
-
-    implicit def formToStepOps[A](form: Form[A]): StepOps[A, Form[A]] = new StepOps[A, Form[A]] {
-      override def orFailWith(failureHandler: (Form[A]) => Fail) = fromForm(failureHandler)(form)
     }
 
     implicit def booleanToStepOps(boolean: Boolean): StepOps[Unit, Unit] = new StepOps[Unit, Unit] {
