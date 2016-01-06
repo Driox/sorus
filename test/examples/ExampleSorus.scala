@@ -1,11 +1,11 @@
-package exemple
+package exemples
 
 import helpers._
 import helpers.SorusDSL._
 import scala.concurrent.Future
 import scalaz._
 
-class SorusExemple extends Sorus {
+class BasicExemple extends Sorus {
 
   // Sample User class
   case class User(id:Option[Long], email:String, validate:Boolean)
