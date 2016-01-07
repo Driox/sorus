@@ -4,7 +4,7 @@ Sorus
 Sorus take inspiration from [Play Monadic Action](https://github.com/Driox/play-monadic-actions) to extends the DSL outside of Actions.
 It provides some syntactic sugar that allows boilerplate-free combination of "classical" type such as Future[Option[A]], Future[Either[A, B]], Future[A] using for-comprehensions. It also provide a simple and powerful way to handle error via Fail
 
-This [article](http://www.medium.com/xxx) explain in greater detail the problem that this project addresses, and how to use the solution in your own projects.
+This [article](https://medium.com/@adriencrovetto/130034b21b37) explain in greater detail the problem that this project addresses, and how to use the solution in your own projects.
 
 ## Installation
 
