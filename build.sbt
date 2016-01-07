@@ -1,6 +1,6 @@
 name := """sorus"""
 
-version := "1.0-SNAPSHOT"
+version := "1.0"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
@@ -25,3 +25,31 @@ scalacOptions ++= Seq(
     "-Ywarn-unused-import",
     "-Ywarn-value-discard" //when non-Unit expression results are unused 
 )
+
+publishMavenStyle := true
+
+licenses += ("Apache2", url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+
+homepage := Some(url("https://github.com/Driox/sorus"))
+
+pomExtra := <scm>
+  <url>git@github.com:Driox/sorus.git</url>
+  <connection>scm:git:git@github.com:Driox/sorus.git</connection>
+</scm>
+  <developers>
+    <developer>
+      <id>acrovetto</id>
+      <name>Adrien Crovetto</name>
+      <url>https://github.com/Driox</url>
+    </developer>
+  </developers>
+
+publishArtifact in Test := false
+
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+}
