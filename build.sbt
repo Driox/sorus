@@ -32,7 +32,19 @@ licenses += ("Apache2", url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
 homepage := Some(url("https://github.com/Driox/sorus"))
 
-pomExtra := <scm>
+publishArtifact in Test := false;
+
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+}
+
+pomIncludeRepository := { _ => false }
+
+pomExtra := (<scm>
   <url>git@github.com:Driox/sorus.git</url>
   <connection>scm:git:git@github.com:Driox/sorus.git</connection>
 </scm>
@@ -42,14 +54,5 @@ pomExtra := <scm>
       <name>Adrien Crovetto</name>
       <url>https://github.com/Driox</url>
     </developer>
-  </developers>
+  </developers>)
 
-publishArtifact in Test := false
-
-publishTo := {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value)
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
-}
