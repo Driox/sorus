@@ -44,15 +44,17 @@ publishTo := {
 
 pomIncludeRepository := { _ => false }
 
-pomExtra := (<scm>
-  <url>git@github.com:Driox/sorus.git</url>
-  <connection>scm:git:git@github.com:Driox/sorus.git</connection>
-</scm>
+pomExtra := (
+  <scm>
+    <url>git@github.com:Driox/sorus.git</url>
+    <connection>scm:git:git@github.com:Driox/sorus.git</connection>
+  </scm>
   <developers>
     <developer>
       <id>acrovetto</id>
       <name>Adrien Crovetto</name>
       <url>https://github.com/Driox</url>
     </developer>
-  </developers>)
+  </developers>
+)
 
