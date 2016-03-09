@@ -11,8 +11,18 @@ This [article](https://medium.com/@adriencrovetto/130034b21b37) explain in great
 Using sbt :
 
 Current version is 1.0.0
+
 ~~~scala
 libraryDependencies += "driox" %% "sorus" % "1.0.0"
+~~~
+
+or in your build.sbt 
+
+~~~scala
+lazy val sorus = RootProject(file("../sorus"))
+
+lazy val root = (project in file(".")).enablePlugins(PlayScala)
+                  .dependsOn(sorus
 ~~~
 
 ## Usage

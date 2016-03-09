@@ -1,6 +1,6 @@
-name := """sorus"""
+name := "sorus"
 
-version := "1.0"
+version := "1.0.0"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
@@ -32,19 +32,9 @@ licenses += ("Apache2", url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
 homepage := Some(url("https://github.com/Driox/sorus"))
 
-pomExtra := <scm>
-  <url>git@github.com:Driox/sorus.git</url>
-  <connection>scm:git:git@github.com:Driox/sorus.git</connection>
-</scm>
-  <developers>
-    <developer>
-      <id>acrovetto</id>
-      <name>Adrien Crovetto</name>
-      <url>https://github.com/Driox</url>
-    </developer>
-  </developers>
+organization := "com.github.driox"
 
-publishArtifact in Test := false
+publishArtifact in Test := false;
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"
@@ -53,3 +43,20 @@ publishTo := {
   else
     Some("releases"  at nexus + "service/local/staging/deploy/maven2")
 }
+
+pomIncludeRepository := { _ => false }
+
+pomExtra := (
+  <scm>
+    <url>git@github.com:Driox/sorus.git</url>
+    <connection>scm:git:git@github.com:Driox/sorus.git</connection>
+  </scm>
+  <developers>
+    <developer>
+      <id>acrovetto</id>
+      <name>Adrien Crovetto</name>
+      <url>https://github.com/Driox</url>
+    </developer>
+  </developers>
+)
+
