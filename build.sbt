@@ -1,4 +1,4 @@
-name := """sorus"""
+name := "sorus"
 
 version := "1.0.0"
 
@@ -31,6 +31,8 @@ publishMavenStyle := true
 licenses += ("Apache2", url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
 homepage := Some(url("https://github.com/Driox/sorus"))
+
+organization := "com.github.driox"
 
 publishArtifact in Test := false;
 
