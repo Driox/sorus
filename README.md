@@ -13,7 +13,7 @@ Using sbt :
 Current version is 1.0.0
 
 ~~~scala
-libraryDependencies += "driox" %% "sorus" % "1.0.0"
+libraryDependencies += "com.github.driox" %% "sorus" % "1.0.0"
 ~~~
 
 or in your build.sbt 
