@@ -1,6 +1,6 @@
-package helpers
+package helpers.sorus
 
-import helpers.SorusDSL._
+import helpers.sorus.SorusDSL._
 
 import org.scalatest._
 

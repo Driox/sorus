@@ -13,7 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package helpers
+package helpers.sorus
+
+import org.slf4j.LoggerFactory
+import play.api.data.validation.ValidationError
+import play.api.i18n.Messages
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -21,6 +25,7 @@ import scala.util.{Failure, Success, Try}
 import scalaz.syntax.either._
 import scalaz.syntax.std.option._
 import scalaz._
+import play.api.libs.json._
 
 /**
  * Inspiration :
@@ -29,34 +34,43 @@ import scalaz._
  */
 object SorusDSL {
 
+  private[this] val logger = LoggerFactory.getLogger(SorusDSL.getClass)
+  private[SorusDSL] val executionContext: ExecutionContext = play.api.libs.concurrent.Execution.defaultContext
+
   type Step[A] = EitherT[Future, Fail, A]
+  type JsErrorContent = Seq[(JsPath, Seq[ValidationError])]
 
   private[SorusDSL] def fromFuture[A](onFailure: Throwable => Fail)(future: Future[A])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](
-      future.map(_.right).recover {
-        case NonFatal(t) => onFailure(t).left
-      }
+      future.map(_.right).recover(log(onFailure(_).left))
     )
   }
 
-  private[SorusDSL] def fromFOption[A](onNone: => Fail)(fOption: Future[Option[A]])(implicit ec: ExecutionContext): Step[A] =
+  private[SorusDSL] def fromFOption[A](onNone: => Fail)(fOption: Future[Option[A]])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](
-      fOption.map(_ \/> onNone).recover {
-        case NonFatal(t) => onNone.withEx(t).left
-      }
+      fOption.map(_ \/> onNone).recover(log(onNone.withEx(_).left))
     )
+  }
 
   private[SorusDSL] def fromFEither[A, B](onLeft: B => Fail)(fEither: Future[Either[B, A]])(implicit ec: ExecutionContext): Step[A] = {
-    EitherT[Future, Fail, A](fEither.map(_.fold(onLeft andThen \/.left, \/.right)))
+    EitherT[Future, Fail, A] {
+      fEither
+        .map(_.fold(onLeft andThen \/.left, \/.right))
+        .recover(log(x => (Fail("Unexpected error in Future from FEither").withEx(x)).left))
+    }
   }
 
   private[SorusDSL] def fromFDisjunction[A, B](onLeft: B => Fail)(fDisjunction: Future[B \/ A])(implicit ec: ExecutionContext): Step[A] =
-    EitherT[Future, Fail, A](fDisjunction.map(_.leftMap(onLeft)))
+    EitherT[Future, Fail, A] {
+      fDisjunction
+        .map(_.leftMap(onLeft))
+        .recover(log(x => (Fail("Unexpected error in Future from FDisjunction").withEx(x)).left))
+    }
 
   private[SorusDSL] def fromOption[A](onNone: => Fail)(option: Option[A]): Step[A] =
     EitherT[Future, Fail, A](Future.successful(option \/> onNone))
 
-  private[SorusDSL] def fromDisjunction[A, B](onLeft: B => Fail)(disjunction: B\/A)(implicit ec: ExecutionContext): Step[A] =
+  private[SorusDSL] def fromDisjunction[A, B](onLeft: B => Fail)(disjunction: B \/ A)(implicit ec: ExecutionContext): Step[A] =
     EitherT[Future, Fail, A](Future.successful(disjunction.leftMap(onLeft)))
 
   private[SorusDSL] def fromEither[A, B](onLeft: B => Fail)(either: Either[B, A])(implicit ec: ExecutionContext): Step[A] =
@@ -71,6 +85,18 @@ object SorusDSL {
       case Success(v) => v.right
     }))
 
+  private[helpers] def fromJsResult[A](onJsError: JsErrorContent => Fail)(jsResult: JsResult[A]): Step[A] = {
+    EitherT[Future, Fail, A](Future.successful(jsResult.fold(onJsError andThen \/.left, \/.right)))
+  }
+
+  // PartialFunction : http://blog.bruchez.name/2011/10/scala-partial-functions-without-phd.html
+  private[this] def log[A](f: Throwable => Fail \/ A): PartialFunction[Throwable, Fail \/ A] = {
+    case NonFatal(t) => {
+      logger.error("Unexpected error in Future", t)
+      f(t)
+    }
+  }
+
   trait StepOps[A, B] {
     def orFailWith(failureHandler: B => Fail): Step[A]
     def ?|(failureHandler: B => Fail): Step[A] = orFailWith(failureHandler)
@@ -84,13 +110,31 @@ object SorusDSL {
       case fail: Fail     => fail
       case b              => Fail(b.toString)
     }
+    /**
+     * This allow to compose Step of different types
+     *
+     * Check BasicExemple.scala to see it in action
+     */
+    def ?|>(failureThunk: => Future[Fail \/ A]): Step[A] = {
+      val intermediary_result: Future[Fail \/ A] = orFailWith {
+        case err: Throwable => Fail("Unexpected exception").withEx(err)
+        case fail: Fail     => fail
+        case b              => Fail(b.toString)
+      }.run
+
+      val result = intermediary_result.flatMap {
+        case -\/(_) => failureThunk
+        case x      => Future.successful(x)
+      }(executionContext)
+      EitherT[Future, Fail, A](result)
+    }
   }
 
   trait Sorus {
 
     import scala.language.implicitConversions
 
-    val executionContext: ExecutionContext = play.api.libs.concurrent.Execution.defaultContext
+    protected val executionContext: ExecutionContext = SorusDSL.executionContext
 
     implicit val futureIsAFunctor = new Functor[Future] {
       override def map[A, B](fa: Future[A])(f: (A) => B) = fa.map(f)(executionContext)
@@ -130,7 +174,7 @@ object SorusDSL {
       override def orFailWith(failureHandler: (Unit) => Fail) = fromOption(failureHandler(()))(option)
     }
 
-    implicit def disjunctionToStepOps[A, B](disjunction: B\/A): StepOps[A, B] = new StepOps[A, B] {
+    implicit def disjunctionToStepOps[A, B](disjunction: B \/ A): StepOps[A, B] = new StepOps[A, B] {
       override def orFailWith(failureHandler: (B) => Fail) = fromDisjunction(failureHandler)(disjunction)(executionContext)
     }
 
@@ -144,6 +188,10 @@ object SorusDSL {
 
     implicit def tryToStepOps[A](tryValue: Try[A]): StepOps[A, Throwable] = new StepOps[A, Throwable] {
       override def orFailWith(failureHandler: (Throwable) => Fail) = fromTry(failureHandler)(tryValue)
+    }
+
+    implicit def jsResultToStepOps[A](jsResult: JsResult[A]): StepOps[A, JsErrorContent] = new StepOps[A, JsErrorContent] {
+      override def orFailWith(failureHandler: (JsErrorContent) => Fail) = fromJsResult(failureHandler)(jsResult)
     }
 
     implicit def stepToResult(step: Step[Fail]): Future[Fail] = step.run.map(_.toEither.merge)(executionContext)

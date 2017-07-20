@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package helpers
+package helpers.sorus
 
 import org.apache.commons.lang3.exception.ExceptionUtils
 
 import scalaz._
 
-case class Fail (message: String, cause: Option[\/[Throwable, Fail]] = None) {
+case class Fail(message: String, cause: Option[\/[Throwable, Fail]] = None) {
 
   def withEx(s: String) = Fail(s, Some(\/-(this)))
 
@@ -42,7 +42,7 @@ case class Fail (message: String, cause: Option[\/[Throwable, Fail]] = None) {
     }
   }
 
-  private def getStackTrace(e:Throwable):String = {
+  private def getStackTrace(e: Throwable): String = {
     ExceptionUtils.getStackTrace(e)
   }
 }
