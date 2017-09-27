@@ -56,6 +56,10 @@ class Fail(val message: String, val cause: Option[\/[Throwable, Fail]] = None) {
       case _ => false
     }
   }
+
+  override def hashCode(): Int = {
+    this.message.hashCode + this.cause.hashCode()
+  }
 }
 
 object Fail {
