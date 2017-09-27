@@ -7,7 +7,6 @@ import play.api.data.Form
 
 import scala.concurrent.Future
 import play.api.data.validation.ValidationError
-import play.api.i18n.Messages
 import play.api.libs.json._
 
 import scalaz._
