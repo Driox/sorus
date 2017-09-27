@@ -1,4 +1,4 @@
-package helpers
+package helpers.sorus
 
 import org.scalatest._
 import scalaz._
