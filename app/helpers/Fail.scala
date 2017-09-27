@@ -19,13 +19,13 @@ import org.apache.commons.lang3.exception.ExceptionUtils
 
 import scalaz._
 
-case class Fail(message: String, cause: Option[\/[Throwable, Fail]] = None) {
+class Fail(val message: String, val cause: Option[\/[Throwable, Fail]] = None) {
 
-  def withEx(s: String) = Fail(s, Some(\/-(this)))
+  def withEx(s: String): Fail = new Fail(s, Some(\/-(this)))
 
-  def withEx(ex: Throwable) = Fail(this.message, Some(-\/(ex)))
+  def withEx(ex: Throwable): Fail = new Fail(this.message, Some(-\/(ex)))
 
-  def withEx(fail: Fail) = Fail(this.message, Some(\/-(fail)))
+  def withEx(fail: Fail): Fail = new Fail(this.message, Some(\/-(fail)))
 
   def messages(): NonEmptyList[String] = cause match {
     case None              => NonEmptyList(message)
@@ -42,7 +42,22 @@ case class Fail(message: String, cause: Option[\/[Throwable, Fail]] = None) {
     }
   }
 
-  private def getStackTrace(e: Throwable): String = {
+  private[this] def getStackTrace(e: Throwable): String = {
     ExceptionUtils.getStackTrace(e)
   }
+
+  override def toString(): String = {
+    message + cause.map(_.toString).getOrElse("")
+  }
+
+  override def equals(obj:Any):Boolean = {
+    obj match {
+      case f:Fail => f.message == this.message && f.cause == this.cause
+      case _ => false
+    }
+  }
+}
+
+object Fail {
+  def apply(message: String, cause: Option[\/[Throwable, Fail]] = None): Fail = new Fail(message, cause)
 }

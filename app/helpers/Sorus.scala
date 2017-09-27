@@ -56,7 +56,7 @@ object SorusDSL {
     EitherT[Future, Fail, A] {
       fEither
         .map(_.fold(onLeft andThen \/.left, \/.right))
-        .recover(log(x => (Fail("Unexpected error in Future from FEither").withEx(x)).left))
+        .recover(log(x => (new Fail("Unexpected error in Future from FEither").withEx(x)).left))
     }
   }
 
@@ -64,7 +64,7 @@ object SorusDSL {
     EitherT[Future, Fail, A] {
       fDisjunction
         .map(_.leftMap(onLeft))
-        .recover(log(x => (Fail("Unexpected error in Future from FDisjunction").withEx(x)).left))
+        .recover(log(x => (new Fail("Unexpected error in Future from FDisjunction").withEx(x)).left))
     }
 
   private[SorusDSL] def fromOption[A](onNone: => Fail)(option: Option[A]): Step[A] =
@@ -101,14 +101,14 @@ object SorusDSL {
     def orFailWith(failureHandler: B => Fail): Step[A]
     def ?|(failureHandler: B => Fail): Step[A] = orFailWith(failureHandler)
     def ?|(failureThunk: => String): Step[A] = orFailWith {
-      case err: Throwable => Fail(failureThunk).withEx(err)
-      case fail: Fail     => Fail(failureThunk).withEx(fail)
-      case b              => Fail(b.toString).withEx(failureThunk)
+      case err: Throwable => new Fail(failureThunk).withEx(err)
+      case fail: Fail     => new Fail(failureThunk).withEx(fail)
+      case b              => new Fail(b.toString).withEx(failureThunk)
     }
     def ?|(): Step[A] = orFailWith {
-      case err: Throwable => Fail("Unexpected exception").withEx(err)
+      case err: Throwable => new Fail("Unexpected exception").withEx(err)
       case fail: Fail     => fail
-      case b              => Fail(b.toString)
+      case b              => new Fail(b.toString)
     }
     /**
      * This allow to compose Step of different types
@@ -117,9 +117,9 @@ object SorusDSL {
      */
     def ?|>(failureThunk: => Future[Fail \/ A]): Step[A] = {
       val intermediary_result: Future[Fail \/ A] = orFailWith {
-        case err: Throwable => Fail("Unexpected exception").withEx(err)
+        case err: Throwable => new Fail("Unexpected exception").withEx(err)
         case fail: Fail     => fail
-        case b              => Fail(b.toString)
+        case b              => new Fail(b.toString)
       }.run
 
       val result = intermediary_result.flatMap {
@@ -149,7 +149,7 @@ object SorusDSL {
     // This instance is needed to enable filtering/pattern-matching in for-comprehensions
     // It is acceptable for pattern-matching
     implicit val failIsAMonoid = new Monoid[Fail] {
-      override def zero = Fail("")
+      override def zero = new Fail("")
 
       override def append(f1: Fail, f2: => Fail) = throw new IllegalStateException("should not happen")
     }
