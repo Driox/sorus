@@ -20,11 +20,11 @@ case class FailWithResult(
 
 }
 
-trait FormatErrorResult {
+trait FormatErrorResult[T <: Request[_]] {
 
-  def failToResult(fail:Fail):Result = BadRequest(fail.userMessage())
+  def failToResult(fail:Fail)(implicit request: T):Result = BadRequest(fail.userMessage())
 
-  def formatJsonValidationErrorToResult(errors: Seq[(JsPath, Seq[ValidationError])]):Result = {
+  def formatJsonValidationErrorToResult(errors: Seq[(JsPath, Seq[ValidationError])])(implicit request: T):Result = {
     val translated_error = errors.map(a_path => (a_path._1, a_path._2.map(err => err.message)))
     BadRequest(toJson(translated_error))
   }
@@ -45,7 +45,7 @@ trait FormatErrorResult {
   *
   * You may override default serialization of Fail into Error by extending FormatErrorResult.
   */
-trait SorusPlay extends Sorus { self: FormatErrorResult =>
+trait SorusPlay[T <: Request[_]] extends Sorus { self: FormatErrorResult[T] =>
 
   private[SorusPlay] def fromForm[A](onError: Form[A] => Fail)(form: Form[A]): Step[A] =
     EitherT[Future, Fail, A](Future.successful(form.fold(onError andThen \/.left, \/.right)))
@@ -54,14 +54,17 @@ trait SorusPlay extends Sorus { self: FormatErrorResult =>
     override def orFailWith(failureHandler: (Form[A]) => Fail) = fromForm(failureHandler)(form)
   }
 
-  implicit def resultStepToResult(step: Step[Result]): Future[Result] = {
+  implicit def resultStepToResult(step: Step[Result])(implicit request: T): Future[Result] = {
     step.run.map { s =>
       s.leftMap(f => transformFail2Result(f)).toEither.merge
     }(executionContext)
   }
 
-  private[this] def jsonResult2Fail(json: Seq[(JsPath, Seq[ValidationError])]): FailWithResult = {
-    FailWithResult("result from ctrl", formatJsonValidationErrorToResult(json))
+  private[this] def transformFail2Result(fail: Fail)(implicit request: T): Result = {
+    fail match {
+      case f: FailWithResult => f.result
+      case f: Fail => failToResult(f)
+    }
   }
 
   /**
@@ -103,14 +106,11 @@ trait SorusPlay extends Sorus { self: FormatErrorResult =>
       }
   }
 
-  private[this] def transformFail2Result(fail: Fail): Result = {
-    fail match {
-      case f: FailWithResult => f.result
-      case f: Fail => failToResult(f)
-    }
+  implicit def jsResultToStepOps[A](jsResult: JsResult[A])(implicit request: T): StepOps[A, JsErrorContent] = new StepOps[A, JsErrorContent] {
+    override def orFailWith(failureHandler: (JsErrorContent) => Fail) = fromJsResult(jsonResult2Fail)(jsResult)
   }
 
-  override implicit def jsResultToStepOps[A](jsResult: JsResult[A]): StepOps[A, JsErrorContent] = new StepOps[A, JsErrorContent] {
-    override def orFailWith(failureHandler: (JsErrorContent) => Fail) = fromJsResult(jsonResult2Fail)(jsResult)
+  private[this] def jsonResult2Fail(json: Seq[(JsPath, Seq[ValidationError])])(implicit request: T): FailWithResult = {
+    FailWithResult("result from ctrl", formatJsonValidationErrorToResult(json))
   }
 }

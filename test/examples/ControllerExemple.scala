@@ -7,7 +7,7 @@ import play.api.mvc._
 import scala.concurrent.Future
 import scalaz._
 
-class ControllerExemple extends Controller with SorusPlay with FormatErrorResult {
+class ControllerExemple extends Controller with SorusPlay[Request[_]] with FormatErrorResult[Request[_]] {
 
   // Sample User class
   case class User(id:Option[Long], email:String, validate:Boolean)
