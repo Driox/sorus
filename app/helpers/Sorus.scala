@@ -90,7 +90,7 @@ object SorusDSL {
   }
 
   // PartialFunction : http://blog.bruchez.name/2011/10/scala-partial-functions-without-phd.html
-  private[this] def log[A](f: Throwable => Fail \/ A): PartialFunction[Throwable, Fail \/ A] = {
+  protected def log[A](f: Throwable => Fail \/ A): PartialFunction[Throwable, Fail \/ A] = {
     case NonFatal(t) => {
       logger.error("Unexpected error in Future", t)
       f(t)
