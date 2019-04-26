@@ -33,7 +33,7 @@ class Fail(val message: String, val cause: Option[\/[Throwable, Fail]] = None) {
     case Some(\/-(parent)) => message <:: parent.messages
   }
 
-  def userMessage(): String = messages.list.mkString(" <- ")
+  def userMessage(): String = messages.list.toList.mkString(" <- ")
 
   def getRootException(): Option[Throwable] = cause flatMap {
     _ match {
