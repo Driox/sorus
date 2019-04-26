@@ -1,6 +1,6 @@
 name := "sorus"
 
-version := "1.2.0"
+version := "1.2.1"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
@@ -8,8 +8,7 @@ lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 lazy val supportedScalaVersions = List(scala212, scala211)
 
-scalaVersion := "2.12.8"
-//crossScalaVersions := supportedScalaVersions
+crossScalaVersions := supportedScalaVersions
 
 libraryDependencies ++= Seq(
   "org.scalatest"          %% "scalatest"            % "3.0.5"    % "test" withSources(),
