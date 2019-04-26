@@ -1,6 +1,6 @@
 name := "sorus"
 
-version := "1.2.0"
+version := "1.2.1"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
@@ -11,7 +11,7 @@ lazy val supportedScalaVersions = List(scala212, scala211)
 crossScalaVersions := supportedScalaVersions
 
 libraryDependencies ++= Seq(
-  "org.scalatest"          %% "scalatest"            % "2.2.4"    % "test" withSources(),
+  "org.scalatest"          %% "scalatest"            % "3.0.5"    % "test" withSources(),
   "org.scalaz"             %% "scalaz-core"          % "7.2.27"            withSources()
 )
 
@@ -20,7 +20,7 @@ scalacOptions ++= Seq(
     "-deprecation",
     "-feature",
     "-unchecked",
-    "-Xfatal-warnings",
+    //"-Xfatal-warnings",
     "-Xlint",
     "-Ywarn-dead-code",
     //"-Ywarn-unused",
