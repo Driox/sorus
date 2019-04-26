@@ -1,16 +1,18 @@
 name := "sorus"
 
-version := "1.1.2"
+version := "1.2.0"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.11.7"
+lazy val scala212 = "2.12.8"
+lazy val scala211 = "2.11.12"
+lazy val supportedScalaVersions = List(scala212, scala211)
+
+crossScalaVersions := supportedScalaVersions
 
 libraryDependencies ++= Seq(
   "org.scalatest"          %% "scalatest"            % "2.2.4"    % "test" withSources(),
-  "com.github.nscala-time" %% "nscala-time"          % "2.4.0"             withSources(),
-  "org.scalaz"             %% "scalaz-core"          % "7.1.5"             withSources(),
-  "joda-time"              %  "joda-time"            % "2.8.1"             withSources()
+  "org.scalaz"             %% "scalaz-core"          % "7.2.27"            withSources()
 )
 
 // sbt and compiler option
@@ -21,8 +23,8 @@ scalacOptions ++= Seq(
     "-Xfatal-warnings",
     "-Xlint",
     "-Ywarn-dead-code",
-    "-Ywarn-unused",
-    "-Ywarn-unused-import",
+    //"-Ywarn-unused",
+    //"-Ywarn-unused-import",
     "-Ywarn-value-discard" //when non-Unit expression results are unused 
 )
 
