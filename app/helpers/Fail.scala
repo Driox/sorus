@@ -28,8 +28,8 @@ class Fail(val message: String, val cause: Option[\/[Throwable, Fail]] = None) {
   def withEx(fail: Fail): Fail = new Fail(this.message, Some(\/-(fail)))
 
   def messages(): NonEmptyList[String] = cause match {
-    case None              => NonEmptyList(message)
-    case Some(-\/(exp))    => message <:: NonEmptyList(s"${exp.getMessage} ${getStackTrace(exp)}")
+    case None => NonEmptyList(message)
+    case Some(-\/(exp)) => message <:: NonEmptyList(s"${exp.getMessage} ${getStackTrace(exp)}")
     case Some(\/-(parent)) => message <:: parent.messages
   }
 
@@ -37,7 +37,7 @@ class Fail(val message: String, val cause: Option[\/[Throwable, Fail]] = None) {
 
   def getRootException(): Option[Throwable] = cause flatMap {
     _ match {
-      case -\/(exp)    => Some(exp)
+      case -\/(exp) => Some(exp)
       case \/-(parent) => parent.getRootException
     }
   }
@@ -50,9 +50,9 @@ class Fail(val message: String, val cause: Option[\/[Throwable, Fail]] = None) {
     message + cause.map(_.toString).getOrElse("")
   }
 
-  override def equals(obj:Any):Boolean = {
+  override def equals(obj: Any): Boolean = {
     obj match {
-      case f:Fail => f.message == this.message && f.cause == this.cause
+      case f: Fail => f.message == this.message && f.cause == this.cause
       case _ => false
     }
   }

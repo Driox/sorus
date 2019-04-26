@@ -17,9 +17,9 @@ package helpers.sorus
 
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 import scalaz.syntax.either._
 import scalaz.syntax.std.option._
 import scalaz._
@@ -40,14 +40,12 @@ object SorusDSL {
 
   private[SorusDSL] def fromFuture[A](onFailure: Throwable => Fail)(future: Future[A])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](
-      future.map(_.right).recover(log(onFailure(_).left))
-    )
+      future.map(_.right).recover(log(onFailure(_).left)))
   }
 
   private[SorusDSL] def fromFOption[A](onNone: => Fail)(fOption: Future[Option[A]])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](
-      fOption.map(_ \/> onNone).recover(log(onNone.withEx(_).left))
-    )
+      fOption.map(_ \/> onNone).recover(log(onNone.withEx(_).left)))
   }
 
   private[SorusDSL] def fromFEither[A, B](onLeft: B => Fail)(fEither: Future[Either[B, A]])(implicit ec: ExecutionContext): Step[A] = {
@@ -100,13 +98,13 @@ object SorusDSL {
     def ?|(failureHandler: B => Fail): Step[A] = orFailWith(failureHandler)
     def ?|(failureThunk: => String): Step[A] = orFailWith {
       case err: Throwable => new Fail(failureThunk).withEx(err)
-      case fail: Fail     => new Fail(failureThunk).withEx(fail)
-      case b              => new Fail(b.toString).withEx(failureThunk)
+      case fail: Fail => new Fail(failureThunk).withEx(fail)
+      case b => new Fail(b.toString).withEx(failureThunk)
     }
     def ?|(): Step[A] = orFailWith {
       case err: Throwable => new Fail("Unexpected exception").withEx(err)
-      case fail: Fail     => fail
-      case b              => new Fail(b.toString)
+      case fail: Fail => fail
+      case b => new Fail(b.toString)
     }
     /**
      * This allow to compose Step of different types
@@ -116,13 +114,13 @@ object SorusDSL {
     def ?|>(failureThunk: => Future[Fail \/ A]): Step[A] = {
       val intermediary_result: Future[Fail \/ A] = orFailWith {
         case err: Throwable => new Fail("Unexpected exception").withEx(err)
-        case fail: Fail     => fail
-        case b              => new Fail(b.toString)
+        case fail: Fail => fail
+        case b => new Fail(b.toString)
       }.run
 
       val result = intermediary_result.flatMap {
         case -\/(_) => failureThunk
-        case x      => Future.successful(x)
+        case x => Future.successful(x)
       }(executionContext)
       EitherT[Future, Fail, A](result)
     }

@@ -13,18 +13,17 @@ import scalaz._
 import scala.language.implicitConversions
 
 case class FailWithResult(
-    override val message: String,
-    val result:           Result,
-    override val cause:   Option[\/[Throwable, Fail]] = None
-) extends Fail(message, cause) {
+  override val message: String,
+  val result: Result,
+  override val cause: Option[\/[Throwable, Fail]] = None) extends Fail(message, cause) {
 
 }
 
 trait FormatErrorResult[T <: Request[_]] {
 
-  def failToResult(fail:Fail):Result = BadRequest(fail.userMessage())
+  def failToResult(fail: Fail): Result = BadRequest(fail.userMessage())
 
-  def formatJsonValidationErrorToResult(errors: Seq[(JsPath, Seq[ValidationError])]):Result = {
+  def formatJsonValidationErrorToResult(errors: Seq[(JsPath, Seq[ValidationError])]): Result = {
     val translated_error = errors.map(a_path => (a_path._1, a_path._2.map(err => err.message)))
     BadRequest(toJson(translated_error))
   }
@@ -37,14 +36,14 @@ trait FormatErrorResult[T <: Request[_]] {
 }
 
 /**
-  * This trait allow you to use the ?| operator in your Play controller and get a Future[Result] instead of a Future[Fail \/ T]
-  *
-  * Usage :
-  *
-  * class MyController extends Controller with FormatErrorResult with SorusPlay
-  *
-  * You may override default serialization of Fail into Error by extending FormatErrorResult.
-  */
+ * This trait allow you to use the ?| operator in your Play controller and get a Future[Result] instead of a Future[Fail \/ T]
+ *
+ * Usage :
+ *
+ * class MyController extends Controller with FormatErrorResult with SorusPlay
+ *
+ * You may override default serialization of Fail into Error by extending FormatErrorResult.
+ */
 trait SorusPlay[T <: Request[_]] extends Sorus { self: FormatErrorResult[T] =>
 
   private[SorusPlay] def fromForm[A](onError: Form[A] => Fail)(form: Form[A]): Step[A] =
@@ -100,17 +99,9 @@ trait SorusPlay[T <: Request[_]] extends Sorus { self: FormatErrorResult[T] =>
    * consumers <- consumerService.search(q) ?| NotFound("this will be erased")
    */
   implicit def result2FailFunction(result: Result): Throwable => FailWithResult = { t: Throwable =>
-      {
-        val rez_with_body = Status(result.header.status)(t.getMessage)
-        FailWithResult("result from ctrl", rez_with_body, Some(-\/(t)))
-      }
+    {
+      val rez_with_body = Status(result.header.status)(t.getMessage)
+      FailWithResult("result from ctrl", rez_with_body, Some(-\/(t)))
+    }
   }
-
-//  implicit def jsResultToStepOps[A](jsResult: JsResult[A])(implicit request: T): StepOps[A, JsErrorContent] = new StepOps[A, JsErrorContent] {
-//    override def orFailWith(failureHandler: (JsErrorContent) => Fail) = fromJsResult(jsonResult2Fail)(jsResult)
-//  }
-//
-//  private[this] def jsonResult2Fail(json: Seq[(JsPath, Seq[ValidationError])]): FailWithResult = {
-//    FailWithResult("result from ctrl", formatJsonValidationErrorToResult(json))
-//  }
 }
