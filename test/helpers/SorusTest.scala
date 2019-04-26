@@ -33,6 +33,18 @@ class SorusTest extends FlatSpec with Matchers with Sorus {
       }
     }
 
+    "Sorus" should "handle failure in future" in {
+      def underlyingMethod():Future[Fail\/String] = Future.failed(new Exception("Future in error"))
+
+      val result:Future[Fail\/String] = for {
+        _ <- underlyingMethod() ?| ()
+      } yield {
+        "success"
+      }
+
+      Await.result(result , 10 seconds).toString shouldBe Fail("Unexpected error in Future from FDisjunction").withEx(new Exception("Future in error")).left.toString
+    }
+
     "Sorus" should "properly promote Future[A] to Step[A]" in {
       val successfulFuture = Future.successful(42)
       Await.result((successfulFuture ?| "error").run, 10 seconds) shouldBe 42.right
