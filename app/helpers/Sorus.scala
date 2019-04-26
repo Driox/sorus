@@ -16,7 +16,6 @@
 package helpers.sorus
 
 import org.slf4j.LoggerFactory
-import play.api.data.validation.ValidationError
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -37,7 +36,7 @@ object SorusDSL {
   private[SorusDSL] val executionContext: ExecutionContext = play.api.libs.concurrent.Execution.defaultContext
 
   type Step[A] = EitherT[Future, Fail, A]
-  type JsErrorContent = Seq[(JsPath, Seq[ValidationError])]
+  type JsErrorContent = Seq[(JsPath, Seq[JsonValidationError])]
 
   private[SorusDSL] def fromFuture[A](onFailure: Throwable => Fail)(future: Future[A])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](
@@ -69,10 +68,10 @@ object SorusDSL {
   private[SorusDSL] def fromOption[A](onNone: => Fail)(option: Option[A]): Step[A] =
     EitherT[Future, Fail, A](Future.successful(option \/> onNone))
 
-  private[SorusDSL] def fromDisjunction[A, B](onLeft: B => Fail)(disjunction: B \/ A)(implicit ec: ExecutionContext): Step[A] =
+  private[SorusDSL] def fromDisjunction[A, B](onLeft: B => Fail)(disjunction: B \/ A): Step[A] =
     EitherT[Future, Fail, A](Future.successful(disjunction.leftMap(onLeft)))
 
-  private[SorusDSL] def fromEither[A, B](onLeft: B => Fail)(either: Either[B, A])(implicit ec: ExecutionContext): Step[A] =
+  private[SorusDSL] def fromEither[A, B](onLeft: B => Fail)(either: Either[B, A]): Step[A] =
     EitherT[Future, Fail, A](Future.successful(either.fold(onLeft andThen \/.left, \/.right)))
 
   private[SorusDSL] def fromBoolean(onFalse: => Fail)(boolean: Boolean): Step[Unit] =
@@ -174,11 +173,11 @@ object SorusDSL {
     }
 
     implicit def disjunctionToStepOps[A, B](disjunction: B \/ A): StepOps[A, B] = new StepOps[A, B] {
-      override def orFailWith(failureHandler: (B) => Fail) = fromDisjunction(failureHandler)(disjunction)(executionContext)
+      override def orFailWith(failureHandler: (B) => Fail) = fromDisjunction(failureHandler)(disjunction)
     }
 
     implicit def eitherToStepOps[A, B](either: Either[B, A]): StepOps[A, B] = new StepOps[A, B] {
-      override def orFailWith(failureHandler: (B) => Fail) = fromEither(failureHandler)(either)(executionContext)
+      override def orFailWith(failureHandler: (B) => Fail) = fromEither(failureHandler)(either)
     }
 
     implicit def booleanToStepOps(boolean: Boolean): StepOps[Unit, Unit] = new StepOps[Unit, Unit] {

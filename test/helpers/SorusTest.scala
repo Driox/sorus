@@ -7,7 +7,6 @@ import org.scalatest._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Try, Failure, Success}
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 import scalaz.syntax.either._
