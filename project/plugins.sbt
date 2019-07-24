@@ -16,4 +16,4 @@ addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.6.19")
 addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "1.0.0" excludeAll(
   ExclusionRule(organization = "com.danieltrinh")))
 
-addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.8.2")
+addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.8.3")
