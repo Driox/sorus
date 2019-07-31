@@ -1,27 +1,28 @@
 package helpers.sorus
 
 import helpers.sorus.SorusDSL._
-import play.api.mvc._
-import play.api.mvc.Results._
+import play.api.Logger
 import play.api.data.Form
-
-import scala.concurrent.Future
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
-
+import play.api.mvc.Results._
+import play.api.mvc._
 import scalaz._
+
+import scala.concurrent.Future
 import scala.language.implicitConversions
 
 case class FailWithResult(
   override val message: String,
   val result: Result,
-  override val cause: Option[\/[Throwable, Fail]] = None) extends Fail(message, cause) {
-
+  override val cause: Option[\/[Throwable, Fail]] = None
+) extends Fail(message, cause) {
+  override def withEx(fail: Fail): FailWithResult = new FailWithResult(this.message, result, Some(\/-(fail)))
 }
 
 trait FormatErrorResult[T <: Request[_]] {
 
-  def failToResult(fail: Fail): Result = BadRequest(fail.userMessage())
+  def failToResult(fail: Fail)(implicit request: Request[_]): Result = BadRequest(fail.userMessage())
 
   def formatJsonValidationErrorToResult(errors: Seq[(JsPath, Seq[ValidationError])]): Result = {
     val translated_error = errors.map(a_path => (a_path._1, a_path._2.map(err => err.message)))
@@ -53,13 +54,20 @@ trait SorusPlay[T <: Request[_]] extends Sorus { self: FormatErrorResult[T] =>
     override def orFailWith(failureHandler: (Form[A]) => Fail) = fromForm(failureHandler)(form)
   }
 
-  implicit def resultStepToResult(step: Step[Result]): Future[Result] = {
+  implicit def resultStepToResult(step: Step[Result])(implicit request: T): Future[Result] = {
     step.run.map { s =>
-      s.leftMap(f => transformFail2Result(f)).toEither.merge
+      s.leftMap { f =>
+        log(f)
+        transformFail2Result(f)
+      }.toEither.merge
     }(executionContext)
   }
 
-  private[this] def transformFail2Result(fail: Fail): Result = {
+  protected def log(fail: Fail): Unit = {
+    fail.getRootException().map(ex => Logger.error(fail.userMessage(), ex))
+  }
+
+  private[this] def transformFail2Result(fail: Fail)(implicit request: T): Result = {
     fail match {
       case f: FailWithResult => f.result
       case f: Fail => failToResult(f)

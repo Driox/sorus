@@ -33,7 +33,6 @@ import play.api.libs.json._
 object SorusDSL {
 
   private[this] val logger = LoggerFactory.getLogger(SorusDSL.getClass)
-  private[SorusDSL] val executionContext: ExecutionContext = play.api.libs.concurrent.Execution.defaultContext
 
   type Step[A] = EitherT[Future, Fail, A]
   type JsErrorContent = Seq[(JsPath, Seq[JsonValidationError])]
@@ -111,18 +110,15 @@ object SorusDSL {
      *
      * Check BasicExemple.scala to see it in action
      */
-    def ?|>(failureThunk: => Future[Fail \/ A]): Step[A] = {
-      val intermediary_result: Future[Fail \/ A] = orFailWith {
+    def ?|>(failureThunk: => Future[Fail \/ A])(implicit ec: ExecutionContext): Step[A] = {
+      orFailWith {
         case err: Throwable => new Fail("Unexpected exception").withEx(err)
         case fail: Fail => fail
         case b => new Fail(b.toString)
-      }.run
-
-      val result = intermediary_result.flatMap {
+      }.mapT(_.flatMap {
         case -\/(_) => failureThunk
         case x => Future.successful(x)
-      }(executionContext)
-      EitherT[Future, Fail, A](result)
+      })
     }
   }
 
@@ -130,7 +126,7 @@ object SorusDSL {
 
     import scala.language.implicitConversions
 
-    protected val executionContext: ExecutionContext = SorusDSL.executionContext
+    protected def executionContext: ExecutionContext = scala.concurrent.ExecutionContext.global
 
     implicit val futureIsAFunctor = new Functor[Future] {
       override def map[A, B](fa: Future[A])(f: (A) => B) = fa.map(f)(executionContext)

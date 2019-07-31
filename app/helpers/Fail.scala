@@ -19,7 +19,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils
 
 import scalaz._
 
-class Fail(val message: String, val cause: Option[\/[Throwable, Fail]] = None) {
+class Fail(val message: String, val cause: Option[Throwable \/ Fail] = None) {
 
   def withEx(s: String): Fail = new Fail(s, Some(\/-(this)))
 
