@@ -15,8 +15,7 @@ import scala.language.implicitConversions
 case class FailWithResult(
   override val message: String,
   val result: Result,
-  override val cause: Option[\/[Throwable, Fail]] = None
-) extends Fail(message, cause) {
+  override val cause: Option[\/[Throwable, Fail]] = None) extends Fail(message, cause) {
   override def withEx(fail: Fail): FailWithResult = new FailWithResult(this.message, result, Some(\/-(fail)))
 }
 
@@ -64,7 +63,10 @@ trait SorusPlay[T <: Request[_]] extends Sorus { self: FormatErrorResult[T] =>
   }
 
   protected def log(fail: Fail): Unit = {
-    fail.getRootException().map(ex => Logger.error(fail.userMessage(), ex))
+    fail
+      .getRootException()
+      .map(ex => Logger.error(fail.userMessage(), ex))
+      .getOrElse(())
   }
 
   private[this] def transformFail2Result(fail: Fail)(implicit request: T): Result = {
