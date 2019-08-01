@@ -2,13 +2,14 @@ package exemples
 
 import helpers.sorus._
 import helpers.sorus.SorusDSL._
+
 import scala.concurrent.Future
 import scalaz._
 
 class BasicExemple extends Sorus {
 
   // Sample User class
-  case class User(id:Option[Long], email:String, validate:Boolean)
+  case class User(id: Option[Long], email: String, validate: Boolean)
 
   def doSomething(): Future[Fail \/ User] = {
     for {
@@ -20,12 +21,12 @@ class BasicExemple extends Sorus {
     }
   }
 
-  private def loadUser(id:Long):Future[Option[User]] = {
+  private def loadUser(id: Long): Future[Option[User]] = {
     // Load it from DB / API / Services ...
     Future.successful(Some(User(Some(id), "foo@bar.com", false)))
   }
 
-  private def logUserAction(user:User):Future[Fail \/ Unit] = {
+  private def logUserAction(user: User): Future[Fail \/ Unit] = {
     for {
       id <- user.id ?| "Can't log action of user wihtout id"
     } yield {

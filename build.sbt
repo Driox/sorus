@@ -1,6 +1,6 @@
 name := "sorus"
 
-version := "1.2.2"
+version := "1.2.3"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
@@ -40,10 +40,11 @@ publishArtifact in Test := false;
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value)
+  if (isSnapshot.value) {
     Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+  } else {
+    Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  }
 }
 
 pomIncludeRepository := { _ => false }

@@ -37,7 +37,7 @@ class FailTest extends FlatSpec with Matchers {
     val fail = Fail("Initial fail")
     val ex = new Exception("a msg")
     val failWithEx = fail.withEx(ex).withEx("second msg").withEx("third msg")
-    
+
     fail.getRootException should be(None)
     failWithEx.getRootException should be(Some(ex))
   }
