@@ -7,7 +7,7 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 /**
   * To cross publish :
   *   enter sbt prompt then
-  *   > + publish
+  *   > + publishSigned
   */
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
