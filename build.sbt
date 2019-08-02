@@ -1,9 +1,14 @@
 name := "sorus"
 
-version := "1.2.3"
+version := "1.2.4"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
+/**
+  * To cross publish :
+  *   enter sbt prompt then
+  *   > + publish
+  */
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 lazy val supportedScalaVersions = List(scala212, scala211)
