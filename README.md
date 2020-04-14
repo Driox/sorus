@@ -10,10 +10,10 @@ This [article](https://medium.com/@adriencrovetto/130034b21b37) explain in great
 
 Using sbt :
 
-Current version is 1.1.2
+Current version is 1.2.5
 
 ~~~scala
-libraryDependencies += "com.github.driox" %% "sorus" % "1.2.0"
+libraryDependencies += "com.github.driox" %% "sorus" % "1.2.5"
 ~~~
 
 or in your build.sbt 
