@@ -1,15 +1,17 @@
 package helpers.sorus
 
 import helpers.sorus.SorusDSL._
-import play.api.Logger
-import play.api.data.Form
-import play.api.data.validation.ValidationError
-import play.api.libs.json._
-import play.api.mvc.Results._
+import play.api.Logging
 import play.api.mvc._
-import scalaz._
+import play.api.mvc.Results._
+import play.api.data.Form
 
 import scala.concurrent.Future
+import play.api.data.validation.ValidationError
+import play.api.libs.json._
+import scalaz._
+import java.security.SecureRandom
+
 import scala.language.implicitConversions
 
 case class FailWithResult(
@@ -44,7 +46,7 @@ trait FormatErrorResult[T <: Request[_]] {
  *
  * You may override default serialization of Fail into Error by extending FormatErrorResult.
  */
-trait SorusPlay[T <: Request[_]] extends Sorus { self: FormatErrorResult[T] =>
+trait SorusPlay[T <: Request[_]] extends Sorus with Logging { self: FormatErrorResult[T] =>
 
   private[SorusPlay] def fromForm[A](onError: Form[A] => Fail)(form: Form[A]): Step[A] =
     EitherT[Future, Fail, A](Future.successful(form.fold(onError andThen \/.left, \/.right)))
@@ -55,18 +57,22 @@ trait SorusPlay[T <: Request[_]] extends Sorus { self: FormatErrorResult[T] =>
 
   implicit def resultStepToResult(step: Step[Result])(implicit request: T): Future[Result] = {
     step.run.map { s =>
-      s.leftMap { f =>
-        log(f)
-        transformFail2Result(f)
-      }.toEither.merge
+      s.leftMap(addExceptionCode)
+        .leftMap { f => log(f); f }
+        .leftMap(transformFail2Result)
+        .toEither
+        .merge
     }(executionContext)
   }
 
+  private def addExceptionCode(fail: Fail): Fail = {
+    fail.getRootException()
+      .map(_ => Fail(s"#${StringUtils.randomAlphanumericString(8)} ${fail.message}", fail.cause))
+      .getOrElse(fail)
+  }
+
   protected def log(fail: Fail): Unit = {
-    fail
-      .getRootException()
-      .map(ex => Logger.error(fail.userMessage(), ex))
-      .getOrElse(())
+    fail.getRootException().foreach(ex => logger.error(fail.userMessage, ex))
   }
 
   private[this] def transformFail2Result(fail: Fail)(implicit request: T): Result = {
@@ -113,5 +119,23 @@ trait SorusPlay[T <: Request[_]] extends Sorus { self: FormatErrorResult[T] =>
       val rez_with_body = Status(result.header.status)(t.getMessage)
       FailWithResult("result from ctrl", rez_with_body, Some(-\/(t)))
     }
+  }
+}
+
+private object StringUtils {
+  /**
+   * Elegant random string generation in Scala -> http://www.bindschaedler.com/2012/04/07/elegant-random-string-generation-in-scala/
+   */
+  //Random Generator
+  private[this] val random = new SecureRandom()
+
+  // Generate a random string of length n from the given alphabet
+  private[this] def randomString(alphabet: String)(n: Int): String = {
+    (1 to n).map(_ => random.nextInt(alphabet.size)).map(alphabet).mkString
+  }
+
+  // Generate a random alphabnumeric string of length n
+  def randomAlphanumericString(n: Int): String = {
+    randomString("abcdefghijklmnopqrstuvwxyz0123456789")(n)
   }
 }

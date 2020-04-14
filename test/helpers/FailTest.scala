@@ -1,9 +1,10 @@
 package helpers.sorus
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import scalaz._
 
-class FailTest extends FlatSpec with Matchers {
+class FailTest extends AnyFlatSpec with Matchers {
 
   "Fail " should "compose with String error" in {
     val fail = Fail("Initial fail")
@@ -24,13 +25,16 @@ class FailTest extends FlatSpec with Matchers {
 
   "Fail " should "accumulate error message" in {
     val fail = Fail("Initial fail")
-    fail.messages() should be(NonEmptyList("Initial fail"))
+    fail.userMessages() should be(List("Initial fail"))
 
     val secondFail = fail.withEx(Fail("second fail"))
-    secondFail.messages().size should be(2)
+    secondFail.userMessages().size should be(2)
 
     val thirdFail = secondFail.withEx(new Exception("a msg"))
-    thirdFail.messages().size should be(2)
+    thirdFail.userMessages().size should be(1)
+
+    val fourthFail = Fail("Initial fail").withEx(new Exception("a msg")).withEx("another msg").withEx("last msg")
+    fourthFail.userMessages().size should be(4)
   }
 
   "Fail " should "allow to retrive original exception" in {

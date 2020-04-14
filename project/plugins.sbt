@@ -9,7 +9,7 @@ resolvers += "scalaz-bintray" at "https://de.bintray.com/scalaz/releases/"
 resolvers += Classpaths.sbtPluginReleases
 
 // The Play plugin
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.6.19")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.8.0")
 
 // code plugins
 
