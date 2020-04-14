@@ -33,9 +33,29 @@ import play.api.libs.json._
 object SorusDSL {
 
   private[this] val logger = LoggerFactory.getLogger(SorusDSL.getClass)
+  private[SorusDSL] lazy val executionContext: ExecutionContext = scala.concurrent.ExecutionContext.global
 
   type Step[A] = EitherT[Future, Fail, A]
-  type JsErrorContent = Seq[(JsPath, Seq[JsonValidationError])]
+  type JsErrorContent = scala.collection.Seq[(JsPath, scala.collection.Seq[JsonValidationError])]
+
+  /**
+   * Standard sequence are fail fast because it rely on map/flatMap
+   * This is an alternate sequence that accumulate error into a Fail
+   *
+   * Its main usage is to transform List[Fail \/ A] into Fail \/ List[A]
+   * With all the Fail error accumulated
+   */
+  def sequenceFail[A](data: List[Fail \/ A]): Fail \/ List[A] = {
+    val init: Fail \/ List[A] = \/-(List())
+    data.foldRight(init) { (elem, acc) =>
+      (acc, elem) match {
+        case (-\/(f1), -\/(f2)) => -\/(f1.withEx(f2))
+        case (-\/(fail), _) => -\/(fail)
+        case (_, -\/(fail)) => -\/(fail)
+        case (\/-(list), \/-(rez)) => \/-(list :+ rez)
+      }
+    }
+  }
 
   private[SorusDSL] def fromFuture[A](onFailure: Throwable => Fail)(future: Future[A])(implicit ec: ExecutionContext): Step[A] = {
     EitherT[Future, Fail, A](
@@ -81,7 +101,10 @@ object SorusDSL {
     }))
 
   private[helpers] def fromJsResult[A](onJsError: JsErrorContent => Fail)(jsResult: JsResult[A]): Step[A] = {
-    EitherT[Future, Fail, A](Future.successful(jsResult.fold(onJsError andThen \/.left, \/.right)))
+    val js_result = jsResult.fold(
+      onJsError andThen \/.left[Fail, A],
+      \/.right[Fail, A])
+    EitherT[Future, Fail, A](Future.successful(js_result))
   }
 
   // PartialFunction : http://blog.bruchez.name/2011/10/scala-partial-functions-without-phd.html
@@ -98,9 +121,10 @@ object SorusDSL {
     def ?|(failureThunk: => String): Step[A] = orFailWith {
       case err: Throwable => new Fail(failureThunk).withEx(err)
       case fail: Fail => new Fail(failureThunk).withEx(fail)
+      case b: Unit => new Fail(failureThunk.toString)
       case b => new Fail(b.toString).withEx(failureThunk)
     }
-    def ?|(): Step[A] = orFailWith {
+    def ?|(empty: Unit): Step[A] = orFailWith {
       case err: Throwable => new Fail("Unexpected exception").withEx(err)
       case fail: Fail => fail
       case b => new Fail(b.toString)
@@ -110,15 +134,18 @@ object SorusDSL {
      *
      * Check BasicExemple.scala to see it in action
      */
-    def ?|>(failureThunk: => Future[Fail \/ A])(implicit ec: ExecutionContext): Step[A] = {
-      orFailWith {
+    def ?|>(failureThunk: => Future[Fail \/ A]): Step[A] = {
+      val intermediary_result: Future[Fail \/ A] = orFailWith {
         case err: Throwable => new Fail("Unexpected exception").withEx(err)
         case fail: Fail => fail
         case b => new Fail(b.toString)
-      }.mapT(_.flatMap {
+      }.run
+
+      val result = intermediary_result.flatMap {
         case -\/(_) => failureThunk
         case x => Future.successful(x)
-      })
+      }(executionContext)
+      EitherT[Future, Fail, A](result)
     }
   }
 
@@ -126,7 +153,9 @@ object SorusDSL {
 
     import scala.language.implicitConversions
 
-    protected def executionContext: ExecutionContext = scala.concurrent.ExecutionContext.global
+    protected val executionContext: ExecutionContext = SorusDSL.executionContext
+
+    protected def sequenceFail[A](data: List[Fail \/ A]): Fail \/ List[A] = SorusDSL.sequenceFail(data)
 
     implicit val futureIsAFunctor = new Functor[Future] {
       override def map[A, B](fa: Future[A])(f: (A) => B) = fa.map(f)(executionContext)
@@ -143,7 +172,7 @@ object SorusDSL {
     implicit val failIsAMonoid = new Monoid[Fail] {
       override def zero = new Fail("")
 
-      override def append(f1: Fail, f2: => Fail) = throw new IllegalStateException("should not happen")
+      override def append(f1: Fail, f2: => Fail) = f1.withEx(f2)
     }
 
     implicit def futureToStepOps[A](future: Future[A]): StepOps[A, Throwable] = new StepOps[A, Throwable] {
