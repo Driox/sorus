@@ -27,13 +27,19 @@ class Fail(val message: String, val cause: Option[Throwable \/ Fail] = None) {
 
   def withEx(fail: Fail): Fail = new Fail(this.message, Some(\/-(fail)))
 
-  def messages(): NonEmptyList[String] = cause match {
+  private def messages(): NonEmptyList[String] = cause match {
     case None => NonEmptyList(message)
     case Some(-\/(exp)) => message <:: NonEmptyList(s"${exp.getMessage} ${getStackTrace(exp)}")
     case Some(\/-(parent)) => message <:: parent.messages
   }
 
-  def userMessage(): String = messages.list.toList.mkString(" <- ")
+  def userMessages(): List[String] = (cause match {
+    case None => NonEmptyList(message)
+    case Some(-\/(exp)) => NonEmptyList(message)
+    case Some(\/-(parent)) => message <:: parent.messages
+  }).list.toList
+
+  def userMessage(): String = userMessages.mkString(". ")
 
   def getRootException(): Option[Throwable] = cause flatMap {
     _ match {
@@ -63,5 +69,5 @@ class Fail(val message: String, val cause: Option[Throwable \/ Fail] = None) {
 }
 
 object Fail {
-  def apply(message: String, cause: Option[\/[Throwable, Fail]] = None): Fail = new Fail(message, cause)
+  def apply(message: String, cause: Option[Throwable \/ Fail] = None): Fail = new Fail(message, cause)
 }

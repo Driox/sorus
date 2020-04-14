@@ -1,18 +1,17 @@
 package helpers.sorus
 
 import helpers.sorus.SorusDSL._
-
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
-import scala.util.{ Try, Failure, Success }
+import scala.util.{ Failure, Success, Try }
 import scala.language.postfixOps
-
 import scalaz.syntax.either._
 import scalaz._
 
-class SorusTest extends FlatSpec with Matchers with Sorus {
+class SorusTest extends AnyFlatSpec with Matchers with Sorus {
 
   // Just the fact this function compile allow us to compose various Future
   def composeVariousFuture(): Future[Fail \/ String] = {
@@ -58,7 +57,7 @@ class SorusTest extends FlatSpec with Matchers with Sorus {
     Await.result((someFuture ?| "error").run, 10 seconds) shouldBe 42.right
 
     val noneFuture = Future.successful[Option[Int]](None)
-    Await.result((noneFuture ?| "error").run, 10 seconds) shouldBe Fail("error", Some(\/-(Fail("()", None)))).left
+    Await.result((noneFuture ?| "error").run, 10 seconds) shouldBe Fail("error").left
   }
 
   "Sorus" should "properly promote Future[Either[B, A]] to Step[A]" in {
@@ -84,7 +83,7 @@ class SorusTest extends FlatSpec with Matchers with Sorus {
     Await.result((some ?| "error").run, 10 seconds) shouldBe 42.right
 
     val none = None
-    Await.result((none ?| "error").run, 10 seconds) shouldBe Fail("error", Some(\/-(Fail("()", None)))).left
+    Await.result((none ?| "error").run, 10 seconds) shouldBe Fail("error").left
   }
 
   "Sorus" should "properly promote Either[A, B] to Step[A]" in {
@@ -98,7 +97,7 @@ class SorusTest extends FlatSpec with Matchers with Sorus {
 
   "Sorus" should "properly promote Boolean to Step[A]" in {
     Await.result((true ?| "error").run, 10 seconds) shouldBe ().right
-    Await.result((false ?| "error").run, 10 seconds) shouldBe Fail("error", Some(\/-(Fail("()", None)))).left
+    Await.result((false ?| "error").run, 10 seconds) shouldBe Fail("error").left
   }
 
   "Sorus" should "properly promote Try[A] to Step[A]" in {
