@@ -2,22 +2,22 @@ package helpers.sorus
 
 import helpers.sorus.SorusDSL._
 import play.api.Logging
-import play.api.mvc._
-import play.api.mvc.Results._
 import play.api.data.Form
-
-import scala.concurrent.Future
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
+import play.api.mvc.Results._
+import play.api.mvc._
 import scalaz._
-import java.security.SecureRandom
 
+import java.security.SecureRandom
+import scala.concurrent.Future
 import scala.language.implicitConversions
 
 case class FailWithResult(
   override val message: String,
-  val result: Result,
-  override val cause: Option[\/[Throwable, Fail]] = None) extends Fail(message, cause) {
+  val result:           Result,
+  override val cause:   Option[\/[Throwable, Fail]] = None
+) extends Fail(message, cause) {
   override def withEx(fail: Fail): FailWithResult = new FailWithResult(this.message, result, Some(\/-(fail)))
 }
 
@@ -78,7 +78,7 @@ trait SorusPlay[T <: Request[_]] extends Sorus with Logging { self: FormatErrorR
   private[this] def transformFail2Result(fail: Fail)(implicit request: T): Result = {
     fail match {
       case f: FailWithResult => f.result
-      case f: Fail => failToResult(f)
+      case f: Fail           => failToResult(f)
     }
   }
 
@@ -123,10 +123,11 @@ trait SorusPlay[T <: Request[_]] extends Sorus with Logging { self: FormatErrorR
 }
 
 private object StringUtils {
+
   /**
    * Elegant random string generation in Scala -> http://www.bindschaedler.com/2012/04/07/elegant-random-string-generation-in-scala/
    */
-  //Random Generator
+  // Random Generator
   private[this] val random = new SecureRandom()
 
   // Generate a random string of length n from the given alphabet

@@ -15,9 +15,9 @@
  */
 package helpers.sorus
 
-import org.apache.commons.lang3.exception.ExceptionUtils
-
 import scalaz._
+
+import org.apache.commons.lang3.exception.ExceptionUtils
 
 class Fail(val message: String, val cause: Option[Throwable \/ Fail] = None) {
 
@@ -25,17 +25,26 @@ class Fail(val message: String, val cause: Option[Throwable \/ Fail] = None) {
 
   def withEx(ex: Throwable): Fail = new Fail(this.message, Some(-\/(ex)))
 
-  def withEx(fail: Fail): Fail = new Fail(this.message, Some(\/-(fail)))
+  def withEx(fail: Fail): Fail = {
+    val new_cause = cause
+      .map {
+        case -\/(t) => \/-(fail.withEx(t))
+        case \/-(f) => \/-(f.withEx(fail))
+      }
+      .orElse(Some(\/-(fail)))
+
+    new Fail(this.message, new_cause)
+  }
 
   private def messages(): NonEmptyList[String] = cause match {
-    case None => NonEmptyList(message)
-    case Some(-\/(exp)) => message <:: NonEmptyList(s"${exp.getMessage} ${getStackTrace(exp)}")
+    case None              => NonEmptyList(message)
+    case Some(-\/(exp))    => message <:: NonEmptyList(s"${exp.getMessage} ${getStackTrace(exp)}")
     case Some(\/-(parent)) => message <:: parent.messages
   }
 
   def userMessages(): List[String] = (cause match {
-    case None => NonEmptyList(message)
-    case Some(-\/(exp)) => NonEmptyList(message)
+    case None              => NonEmptyList(message)
+    case Some(-\/(exp))    => NonEmptyList(message)
     case Some(\/-(parent)) => message <:: parent.messages
   }).list.toList
 
@@ -43,7 +52,7 @@ class Fail(val message: String, val cause: Option[Throwable \/ Fail] = None) {
 
   def getRootException(): Option[Throwable] = cause flatMap {
     _ match {
-      case -\/(exp) => Some(exp)
+      case -\/(exp)    => Some(exp)
       case \/-(parent) => parent.getRootException
     }
   }
@@ -59,7 +68,7 @@ class Fail(val message: String, val cause: Option[Throwable \/ Fail] = None) {
   override def equals(obj: Any): Boolean = {
     obj match {
       case f: Fail => f.message == this.message && f.cause == this.cause
-      case _ => false
+      case _       => false
     }
   }
 

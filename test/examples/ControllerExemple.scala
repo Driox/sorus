@@ -1,27 +1,27 @@
 package exemples
 
 import helpers.sorus._
-import play.api.libs.json.Json
+import play.api.libs.json.{ JsValue, Json, OFormat }
 import play.api.mvc._
-
-import scala.concurrent.Future
 import scalaz._
 
-class ControllerExemple (
+import scala.concurrent.Future
+
+class ControllerExemple(
   parse: PlayBodyParsers
 ) extends InjectedController with SorusPlay[Request[_]] with FormatErrorResult[Request[_]] {
 
   // Sample User class
   case class User(id: Option[Long], email: String, validate: Boolean)
-  implicit val user_format = Json.format[User]
+  implicit val user_format: OFormat[User] = Json.format[User]
 
-  def updateUser(user_id: Long) = Action.async(parse.json) { implicit request =>
+  def updateUser(user_id: Long): Action[JsValue] = Action.async(parse.json) { implicit request =>
     for {
-      userUpdate   <- request.body.validate[User]                ?| ()
-      currentUser  <- loadUser(user_id)                          ?| NotFound
-      _            <- currentUser.validate                       ?| "Account need to be validated before any update"
+      userUpdate  <- request.body.validate[User] ?| ()
+      currentUser <- loadUser(user_id)           ?| NotFound
+      _           <- currentUser.validate        ?| "Account need to be validated before any update"
       userToUpdate = currentUser.copy(email = userUpdate.email)
-      userUpdated  <- saveUser(userToUpdate)                     ?| ()
+      userUpdated <- saveUser(userToUpdate)      ?| ()
     } yield {
       Ok(Json.toJson(userUpdated))
     }

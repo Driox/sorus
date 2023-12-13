@@ -1,15 +1,16 @@
 package helpers.sorus
 
 import helpers.sorus.SorusDSL._
+import scalaz._
+import scalaz.syntax.either._
+
+import scala.concurrent.duration._
+import scala.concurrent.{ Await, Future }
+import scala.language.postfixOps
+import scala.util.{ Failure, Success, Try }
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import scala.concurrent.{ Await, Future }
-import scala.concurrent.duration._
-import scala.util.{ Failure, Success, Try }
-import scala.language.postfixOps
-import scalaz.syntax.either._
-import scalaz._
 
 class SorusTest extends AnyFlatSpec with Matchers with Sorus {
 
@@ -40,14 +41,16 @@ class SorusTest extends AnyFlatSpec with Matchers with Sorus {
       "success"
     }
 
-    Await.result(result, 10 seconds).toString shouldBe Fail("Unexpected error in Future from FDisjunction").withEx(new Exception("Future in error")).left.toString
+    Await.result(result, 10 seconds).toString shouldBe Fail("Unexpected error in Future from FDisjunction").withEx(
+      new Exception("Future in error")
+    ).left.toString
   }
 
   "Sorus" should "properly promote Future[A] to Step[A]" in {
     val successfulFuture = Future.successful(42)
     Await.result((successfulFuture ?| "error").run, 10 seconds) shouldBe 42.right
 
-    val ex = new NullPointerException
+    val ex           = new NullPointerException
     val failedFuture = Future.failed[Int](ex)
     Await.result((failedFuture ?| "error").run, 10 seconds) shouldBe Fail("error", Some(-\/(ex))).left
   }
@@ -65,7 +68,7 @@ class SorusTest extends AnyFlatSpec with Matchers with Sorus {
     Await.result((rightFuture ?| "error").run, 10 seconds) shouldBe 42.right
 
     val leftFuture = Future.successful[Either[String, Int]](Left("foo"))
-    val eitherT = leftFuture ?| "error"
+    val eitherT    = leftFuture ?| "error"
     Await.result(eitherT.run, 10 seconds) shouldBe Fail("error", Some(\/-(Fail("foo", None)))).left
   }
 
@@ -74,7 +77,7 @@ class SorusTest extends AnyFlatSpec with Matchers with Sorus {
     Await.result((rightFuture ?| "error").run, 10 seconds) shouldBe 42.right
 
     val leftFuture = Future.successful(-\/("foo"))
-    val eitherT = leftFuture ?| "error"
+    val eitherT    = leftFuture ?| "error"
     Await.result(eitherT.run, 10 seconds) shouldBe Fail("error", Some(\/-(Fail("foo", None)))).left
   }
 
@@ -90,7 +93,7 @@ class SorusTest extends AnyFlatSpec with Matchers with Sorus {
     val right = Right(42)
     Await.result((right ?| "error").run, 10 seconds) shouldBe 42.right
 
-    val left = Left("foo")
+    val left    = Left("foo")
     val eitherT = left ?| "error"
     Await.result(eitherT.run, 10 seconds) shouldBe Fail("error", Some(\/-(Fail("foo", None)))).left
   }
@@ -104,7 +107,7 @@ class SorusTest extends AnyFlatSpec with Matchers with Sorus {
     val success = Success(42)
     Await.result((success ?| "error").run, 10 seconds) shouldBe 42.right
 
-    val ex = new Exception("foo")
+    val ex      = new Exception("foo")
     val failure = Failure(ex)
     val eitherT = failure ?| "error"
     Await.result(eitherT.run, 10 seconds) shouldBe Fail("error", Some(-\/(ex))).left

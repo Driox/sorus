@@ -7,3 +7,8 @@ target
 /.settings
 /RUNNING_PID
 .DS_Store
+.metals/
+.bloop/
+.ammonite/
+project/metals.sbt
+.bsp

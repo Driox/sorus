@@ -9,29 +9,29 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
   *   enter sbt prompt then
   *   > + publishSigned
   */
-lazy val scala212 = "2.12.8"
-lazy val scala213 = "2.13.1"
+lazy val scala212               = "2.12.8"
+lazy val scala213               = "2.13.10"
 lazy val supportedScalaVersions = List(scala212, scala213)
 
 crossScalaVersions := supportedScalaVersions
 
 libraryDependencies ++= Seq(
-  "org.scalatest"          %% "scalatest"            % "3.1.1"    % "test" withSources(),
-  "org.scalaz"             %% "scalaz-core"          % "7.2.30"            withSources(),
-  "org.apache.commons"     %  "commons-lang3"        % "3.9"               withSources()
+  "org.scalatest"     %% "scalatest"     % "3.1.1" % "test" withSources (),
+  "org.scalaz"        %% "scalaz-core"   % "7.2.35" withSources (),
+  "org.apache.commons" % "commons-lang3" % "3.12.0" withSources ()
 )
 
 // sbt and compiler option
 scalacOptions ++= Seq(
-    "-deprecation",
-    "-feature",
-    "-unchecked",
-    //"-Xfatal-warnings",
-    "-Xlint",
-    "-Ywarn-dead-code",
-    //"-Ywarn-unused",
-    //"-Ywarn-unused-import",
-    "-Ywarn-value-discard" //when non-Unit expression results are unused 
+  "-deprecation",
+  "-feature",
+  "-unchecked",
+  // "-Xfatal-warnings",
+  "-Xlint",
+  "-Ywarn-dead-code",
+  // "-Ywarn-unused",
+  // "-Ywarn-unused-import",
+  "-Ywarn-value-discard" // when non-Unit expression results are unused
 )
 
 publishMavenStyle := true
@@ -46,7 +46,7 @@ publishArtifact in Test := false;
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value) {
+  if(isSnapshot.value) {
     Some("snapshots" at nexus + "content/repositories/snapshots")
   } else {
     Some("releases" at nexus + "service/local/staging/deploy/maven2")
@@ -69,3 +69,10 @@ pomExtra := (
   </developers>
 )
 
+// This is an issue with lib / sbt plugin who don't have the same version for scala-xml
+// Binary compatility is "nearly" ok between scala-xml version
+// And this impact only sbt coverage test in jenkins
+// cf. https://github.com/sbt/sbt/issues/6997
+ThisBuild / libraryDependencySchemes ++= Seq(
+  "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+)

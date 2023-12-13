@@ -1,10 +1,10 @@
 package exemples
 
-import helpers.sorus._
 import helpers.sorus.SorusDSL._
+import helpers.sorus._
+import scalaz._
 
 import scala.concurrent.Future
-import scalaz._
 
 class BasicExemple extends Sorus {
 
@@ -13,9 +13,12 @@ class BasicExemple extends Sorus {
 
   def doSomething(): Future[Fail \/ User] = {
     for {
-      user <- loadUser(12L)       ?| "Error while loading user"     // <- you don't create Fail yoursefl but the ?| operator do it for you
+      user <-
+        loadUser(
+          12L
+        ) ?| "Error while loading user" // <- you don't create Fail yoursefl but the ?| operator do it for you
       _    <- user.validate       ?| "Account need to be validated"
-      _    <- logUserAction(user) ?| ()                             // <- You can just forward underlying Fail without adding a message
+      _    <- logUserAction(user) ?| () // <- You can just forward underlying Fail without adding a message
     } yield {
       user
     }
